@@ -137,26 +137,12 @@
       <div class="actions">
         <button id="revise" class="hidden">Edit draft and re-check</button>
       </div>
-      <div id="review" class="hidden" style="margin-top:1rem;border-top:1px solid var(--border);padding-top:.75rem">
-        <label for="note">Manager review note</label>
-        <p class="hint" style="margin:.1rem 0 .4rem">A held draft is not sent. Log why you are returning or clearing it; the note goes to the audit trail.</p>
-        <textarea id="note" style="min-height:3.5rem" placeholder="e.g. feature not scheduled — ask the customer to wait for the roadmap update."></textarea>
-        <div class="actions">
-          <button id="log-review">Log review note (does not send)</button>
-          <span id="review-status" class="hint" role="status" aria-live="polite"></span>
-        </div>
-      </div>
     </div>
   </section>
 
   <section id="history-card" class="card hidden" aria-labelledby="history-h">
     <h2 id="history-h">Recent checks</h2>
     <ol id="history" class="history" reversed></ol>
-  </section>
-
-  <section class="card" aria-labelledby="audit-h">
-    <h2 id="audit-h">Audit trail <span class="hint" style="font-weight:400">— logged on the server</span></h2>
-    <ol id="audit" class="history"><li class="hint">No audit entries yet.</li></ol>
   </section>
 </main>
 
@@ -170,7 +156,6 @@ const LABELS = {
 const STATUS_ORDER = { contradicted: 0, unverified: 1, verified: 2 };
 const $ = (id) => document.getElementById(id);
 let samples = [];
-let lastChecked = { text: "", context: {}, decision: "" };
 const history = [];
 
 // The only call that produces a decision. Returns {decision, reason, evidence, action_executed, ...}.
@@ -233,26 +218,6 @@ function showResult(result) {
   $("claims").replaceChildren(...(claims.length ? claims.map(renderClaim) : [el("li", "hint", "No checkable claims in this draft.")]));
   $("ezio").textContent = other.map((e) => e.message).join(" · ");
   $("revise").classList.toggle("hidden", result.decision === "APPROVE");
-  $("review").classList.toggle("hidden", result.decision !== "HOLD_FOR_REVIEW");
-  $("review-status").textContent = "";
-  lastChecked = { text: $("text").value, context: readContext(), decision: result.decision };
-}
-
-async function loadAudit() {
-  try {
-    const response = await fetch("/api/audit");
-    if (!response.ok) return;
-    const entries = ((await response.json()).entries || []).slice().reverse();
-    const list = $("audit");
-    if (!entries.length) { list.replaceChildren(el("li", "hint", "No audit entries yet.")); return; }
-    list.replaceChildren(...entries.slice(0, 10).map((entry) => {
-      const li = el("li");
-      const label = entry.decision === "REVIEW_NOTE" ? "HOLD_FOR_REVIEW" : entry.decision;
-      li.append(el("span", "dot " + label), document.createTextNode(
-        `${(entry.timestamp || "").replace("T", " ").replace("+00:00", "Z")} — ${entry.decision}: ${(entry.reason || "").slice(0, 90)}`));
-      return li;
-    }));
-  } catch (e) { /* audit view is best-effort */ }
 }
 
 function renderClaim(item) {
@@ -294,7 +259,6 @@ async function run(text, context) {
     const result = await decide(text, context);
     showResult(result);
     addHistory(text, result);
-    loadAudit();
   } catch (error) {
     showError(error.message || "Could not reach the gate.");
   } finally {
@@ -303,25 +267,6 @@ async function run(text, context) {
     setBusy(false);
   }
 }
-
-$("log-review").onclick = async () => {
-  const note = $("note").value.trim();
-  if (!note) { $("review-status").textContent = "Write a note first."; return; }
-  $("log-review").disabled = true;
-  try {
-    const response = await fetch("/review", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ persona: PERSONA, text: lastChecked.text, context: lastChecked.context, note, prior_decision: lastChecked.decision }) });
-    const body = await response.json();
-    if (!response.ok) throw new Error(body.error || "Could not log the note");
-    $("review-status").textContent = "Logged to the audit trail. The email was not sent.";
-    $("note").value = "";
-    loadAudit();
-  } catch (error) {
-    $("review-status").textContent = error.message;
-  } finally {
-    $("log-review").disabled = false;
-  }
-};
 
 $("check").onclick = () => run($("text").value, readContext());
 
@@ -349,8 +294,6 @@ loadSamples()
     $("load").disabled = $("simulate").disabled = true;
     $("status").textContent = error.message;
   });
-
-loadAudit();
 </script>
 </body>
 </html>
