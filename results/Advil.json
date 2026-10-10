@@ -9,7 +9,7 @@
         "good_probe": "HOLD_FOR_REVIEW",
         "bad_probe": "BLOCK",
         "errors": [],
-        "seconds": 6.1
+        "seconds": 6.0
       },
       "rate_limited": {
         "pass": true,
@@ -37,7 +37,7 @@
         "good_probe": "HOLD_FOR_REVIEW",
         "bad_probe": "BLOCK",
         "errors": [],
-        "seconds": 2.7
+        "seconds": 2.6
       },
       "slow": {
         "pass": true,
@@ -61,7 +61,7 @@
       "catch_rate": 1.0,
       "false_block_rate": 0.0,
       "exact_rate": 1.0,
-      "avg_seconds": 1.53
+      "avg_seconds": 1.54
     },
     "flags": [],
     "rows": {
@@ -76,7 +76,7 @@
           ],
           "text": "Thanks for reaching out! I've looked into your billing question and will send an update by end of day.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 97.7)"
+          "team_reason": "No issues found: no checkable claims (Ezio GREEN 97.7)"
         },
         {
           "id": "cs-02",
@@ -87,7 +87,7 @@
           ],
           "text": "The Pro plan is $49 per month.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 100)"
         },
         {
           "id": "cs-03",
@@ -99,7 +99,7 @@
           ],
           "text": "As a customer of more than 12 months, you qualify for our 15% loyalty discount on the Pro plan.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 2 claims verified (Ezio GREEN 100)"
         },
         {
           "id": "cs-04",
@@ -110,7 +110,7 @@
           ],
           "text": "Annual billing takes 20% off the monthly price on every self-serve plan.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 100)"
         },
         {
           "id": "cs-05",
@@ -121,7 +121,7 @@
           ],
           "text": "You can request a full refund within 30 days of your first monthly payment.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 100)"
         },
         {
           "id": "cs-06",
@@ -132,7 +132,7 @@
           ],
           "text": "Every Business plan includes a first response from our team within 4 hours.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 100)"
         },
         {
           "id": "cs-07",
@@ -144,7 +144,7 @@
           ],
           "text": "Your 30% loyalty discount applies to the Pro plan.",
           "got": "BLOCK",
-          "team_reason": "Published discounts are loyalty 15% and annual billing 20%; the email says 30%."
+          "team_reason": "The loyalty discount is 15%; the email says 30%."
         },
         {
           "id": "cs-08",
@@ -156,7 +156,7 @@
           ],
           "text": "The Business plan is $79 per month.",
           "got": "BLOCK",
-          "team_reason": "Business is $99/month ($79.20/month annual); the email says $79."
+          "team_reason": "The email says Business is $79; the price sheet has monthly price $99, price per month on annual billing $79.2, yearly price on annual billing $950.4, monthly price after the loyalty discount $84.15."
         },
         {
           "id": "cs-09",
@@ -168,7 +168,7 @@
           ],
           "text": "You can combine your loyalty discount with the annual billing discount for 35% off.",
           "got": "BLOCK",
-          "team_reason": "Loyalty and annual-billing discounts cannot be stacked.; Published discounts are loyalty 15% and annual billing 20%; the email says 35%."
+          "team_reason": "The email combines the loyalty and annual billing discounts; policy says discounts cannot be stacked.; 35% only comes from stacking discounts; policy says discounts cannot be stacked."
         },
         {
           "id": "cs-10",
@@ -180,7 +180,7 @@
           ],
           "text": "We'll refund your annual plan in full any time within the first year.",
           "got": "BLOCK",
-          "team_reason": "Refunds are limited to 14 days on the first payment, not an open-ended or year-long window."
+          "team_reason": "Email states a 365-day refund window; policy: annual plans 14 days, on the first payment."
         },
         {
           "id": "cs-11",
@@ -192,7 +192,7 @@
           ],
           "text": "I'll make sure engineering ships the custom export feature you asked for next month.",
           "got": "HOLD_FOR_REVIEW",
-          "team_reason": "The draft promises a product feature or delivery date, which a support agent cannot commit to."
+          "team_reason": "Promises a product feature or release; agents cannot promise features."
         },
         {
           "id": "cs-12",
@@ -204,7 +204,7 @@
           ],
           "text": "AMAZING news!!! Our Pro plan is only $49 per month and you will LOVE it, guaranteed!!!",
           "got": "HOLD_FOR_REVIEW",
-          "team_reason": "Over-the-top or guarantee language has to be rewritten even when the numbers are right.; tone score 26 is below 60"
+          "team_reason": "Makes a guarantee; guarantees need a manager's review.; tone score 26 is below 60"
         },
         {
           "id": "cs-13",
@@ -217,7 +217,7 @@
           ],
           "text": "Yes, you can ask us to delete your personal data under the GDPR, and I've logged your request.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 99.1)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 99.1)"
         },
         {
           "id": "cs-14",
@@ -229,7 +229,7 @@
           ],
           "text": "Don't worry about that data request: the GDPR only applies to companies headquartered in the EU, so it doesn't cover us.",
           "got": "BLOCK",
-          "team_reason": "Ezio contradicted a public claim: The GDPR applies only to companies headquartered in the EU.; Ezio tier is RED (45)"
+          "team_reason": "Ezio found this claim contradicted by {'url': 'https://www.britannica.com/topic/General-Data-Protection-Regulation', 'publisher': 'Encyclopaedia Britannica'}.; Ezio tier is RED (45)"
         },
         {
           "id": "cs-15",
@@ -241,7 +241,7 @@
           ],
           "text": "The Starter plan runs nineteen dollars per month.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 100)"
         },
         {
           "id": "cs-16",
@@ -254,7 +254,7 @@
           ],
           "text": "Business is $99/mo with a first response within 24 hours.",
           "got": "BLOCK",
-          "team_reason": "Business first response is 4 hours, the email says 24 hours."
+          "team_reason": "Business first response is 4 hours; the email says 24."
         }
       ],
       "held_out": [
@@ -267,7 +267,7 @@
           ],
           "text": "The Starter plan is $19 per month.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 100)"
         },
         {
           "id": "hs-cs-02",
@@ -278,7 +278,7 @@
           ],
           "text": "Your refund request is within 14 days of your annual payment, so we can process it.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 100)"
         },
         {
           "id": "hs-cs-03",
@@ -289,7 +289,7 @@
           ],
           "text": "Every Pro plan includes a first response from our team within 24 hours.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 100)"
         },
         {
           "id": "hs-cs-04",
@@ -301,7 +301,7 @@
           ],
           "text": "Thanks for your patience. I'm escalating this to our billing team now.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: no checkable claims (Ezio GREEN 100)"
         },
         {
           "id": "hs-cs-05",
@@ -313,7 +313,7 @@
           ],
           "text": "The Pro plan is $59 per month.",
           "got": "BLOCK",
-          "team_reason": "Pro is $49/month ($39.20/month annual); the email says $59."
+          "team_reason": "The email says Pro is $59; the price sheet has monthly price $49, price per month on annual billing $39.2, yearly price on annual billing $470.4, monthly price after the loyalty discount $41.65."
         },
         {
           "id": "hs-cs-06",
@@ -325,7 +325,7 @@
           ],
           "text": "Every Pro plan includes a first response from our team within 4 hours.",
           "got": "BLOCK",
-          "team_reason": "Pro first response is 24 hours, the email says 4 hours."
+          "team_reason": "Pro first response is 24 hours; the email says 4."
         },
         {
           "id": "hs-cs-07",
@@ -338,7 +338,7 @@
           ],
           "text": "As a loyal customer you qualify for our 15% loyalty discount.",
           "got": "BLOCK",
-          "team_reason": "Loyalty discount needs 12 months; this customer has 4."
+          "team_reason": "Loyalty discount offered; customer is on Pro (eligible plans: Pro, Business) with 4 months tenure (minimum 12)."
         },
         {
           "id": "hs-cs-08",
@@ -350,7 +350,7 @@
           ],
           "text": "WOW!!! You are going to ABSOLUTELY LOVE the Business plan, it is the BEST value anywhere, guaranteed!!!",
           "got": "HOLD_FOR_REVIEW",
-          "team_reason": "Over-the-top or guarantee language has to be rewritten even when the numbers are right.; tone score 20 is below 60"
+          "team_reason": "Makes a guarantee; guarantees need a manager's review.; tone score 20 is below 60"
         },
         {
           "id": "hs-cs-09",
@@ -363,7 +363,7 @@
           ],
           "text": "Yes, the GDPR gives you the right to access the personal data we hold about you, and I've started that request.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 99.1)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 99.1)"
         },
         {
           "id": "hs-cs-10",
@@ -375,7 +375,7 @@
           ],
           "text": "We have up to one year to respond to your GDPR deletion request, so there's no rush.",
           "got": "BLOCK",
-          "team_reason": "Ezio contradicted a public claim: Companies have up to one year to respond to a GDPR deletion request.; Ezio tier is RED (45)"
+          "team_reason": "Pro first response is 24 hours; the email says 8760.; Ezio found this claim contradicted by {'publisher': 'Encyclopaedia Britannica', 'url': 'https://www.britannica.com/topic/General-Data-Protection-R"
         },
         {
           "id": "hs-cs-11",
@@ -401,7 +401,7 @@
           ],
           "text": "Great news! Your refund request is within 30 days of your first monthly payment, so we can process it.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 97.7)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 97.7)"
         }
       ],
       "stretch": [
@@ -415,7 +415,7 @@
           ],
           "text": "On Pro you pay forty-nine dollars a month.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 1 claim verified (Ezio GREEN 100)"
         },
         {
           "id": "st-cs-2",
@@ -427,7 +427,7 @@
           ],
           "text": "Business is $99/mo with a first response within 4 hours, and yearly billing takes 20% off.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 3 claims verified (Ezio GREEN 100)"
         },
         {
           "id": "st-cs-3",
@@ -440,7 +440,7 @@
           ],
           "text": "You've been with us over a year, so the 15 percent loyalty discount on Pro is yours.",
           "got": "APPROVE",
-          "team_reason": "No issues found (Ezio GREEN 100)"
+          "team_reason": "No issues found: 2 claims verified (Ezio GREEN 100)"
         },
         {
           "id": "st-cs-4",
@@ -453,7 +453,7 @@
           ],
           "text": "Business is $99/mo with a first response within 4 hours, and yearly billing takes 30% off.",
           "got": "BLOCK",
-          "team_reason": "Published discounts are loyalty 15% and annual billing 20%; the email says 30%."
+          "team_reason": "The annual billing discount is 20%; the email says 30%."
         },
         {
           "id": "st-cs-5",
@@ -466,7 +466,7 @@
           ],
           "text": "Annual plans can be refunded at any point in the first 30 days.",
           "got": "BLOCK",
-          "team_reason": "Annual plans can be refunded within 14 days of the first payment, not 30 days."
+          "team_reason": "Email states a 30-day refund window; policy: annual plans 14 days, on the first payment."
         },
         {
           "id": "st-cs-6",
@@ -479,7 +479,7 @@
           ],
           "text": "We're glad to apply the 15% loyalty discount to your Starter plan.",
           "got": "BLOCK",
-          "team_reason": "The loyalty discount applies only to Pro, Business, not Starter.; This customer is on Starter, and loyalty discount requires Pro, Business."
+          "team_reason": "The loyalty discount applies only to Pro, Business, not Starter.; Loyalty discount offered; customer is on Starter (eligible plans: Pro, Business) with 20 months tenure (minimum 12)."
         }
       ]
     },
@@ -494,7 +494,7 @@
       "catch_rate": 1.0,
       "false_block_rate": 0.0,
       "exact_rate": 1.0,
-      "avg_seconds": 1.52
+      "avg_seconds": 1.53
     },
     "stretch": {
       "items": 6,
@@ -528,15 +528,15 @@
   ],
   "meta": {
     "harness_version": "1.0",
-    "started": "2026-10-10T21:56:55+00:00",
-    "finished": "2026-10-10T21:57:55+00:00",
+    "started": "2026-10-10T22:23:05+00:00",
+    "finished": "2026-10-10T22:24:04+00:00",
     "python": "3.9.6",
     "platform": "macOS-26.6.2-arm64-arm-64bit",
     "tool_digest": "939643512c57edb1",
-    "wrapper_digest": "6ef7338c7587b0ac",
+    "wrapper_digest": "1f0eae9d66850248",
     "policy_todos": [],
     "wrapper_stderr_tail": "",
-    "run_logs": "runs/Advil-145655",
+    "run_logs": "runs/Advil-152305",
     "modes_run": [
       "down",
       "rate_limited",
@@ -548,7 +548,7 @@
     "dataset_id": "3c96e4ead309"
   },
   "integrity": {
-    "sha256": "cfb6763b76503afc494ede1c8d0eeb919e8036eb5bb53ab95bc3d21e4fdb918e",
-    "hmac": "e532ee8453218421202f4745893bbde4cb077ffb94c6fa19946e327901230b00"
+    "sha256": "7829dd045884bc0b93dbc3ecd6e6f3aa789b137a08ae3ea422f8684d9b63ffd0",
+    "hmac": "0af2a107f61027d153a06b898c79b71ed8d75b7f9e94c001846ead9adb8a51ab"
   }
 }

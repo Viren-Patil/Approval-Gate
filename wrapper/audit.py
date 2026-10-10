@@ -11,6 +11,7 @@ _lock = threading.Lock()
 
 
 def recent(limit=25):
+    """Most recent audit entries, newest last, for a review view in the UI."""
     if not LOG.exists():
         return []
     rows = []
@@ -23,6 +24,7 @@ def recent(limit=25):
 
 
 def record_review(persona, text, context, note, prior_decision):
+    """A human reviewer's note on a held draft. The email is never sent from here."""
     entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "persona": persona,
@@ -30,7 +32,8 @@ def record_review(persona, text, context, note, prior_decision):
         "context": context,
         "decision": "REVIEW_NOTE",
         "reason": note,
-        "evidence": [f"Reviewer note on prior decision {prior_decision}. The mock action was not run."],
+        "evidence": [{"source": "reviewer", "status": "note",
+                      "message": f"Reviewer note on prior decision {prior_decision}. The send_email action was not run."}],
         "ezio": {},
     }
     with _lock, LOG.open("a") as f:

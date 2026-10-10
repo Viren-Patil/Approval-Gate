@@ -1,0 +1,1 @@
+{"time": "2026-10-10T21:56:15+00:00", "action": "send_email", "args": {"to": "customer@example.com", "subject": "Re: your question", "body": "The Pro plan is $49 per month."}}

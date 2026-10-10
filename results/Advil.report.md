@@ -1,6 +1,6 @@
 # Approval Gate — final run: Advil
 
-Persona: `customer_support` · Run: 2026-10-10T21:57:55+00:00 · Harness 1.0 · Python 3.9.6
+Persona: `customer_support` · Run: 2026-10-10T22:24:04+00:00 · Harness 1.0 · Python 3.9.6
 
 **Measured score: 50.0 / 50** (held-out 35.0 / 35 + failure drills 15.0 / 15). The other 50 points come from the judges' rubric.
 
@@ -32,6 +32,6 @@ Persona: `customer_support` · Run: 2026-10-10T21:57:55+00:00 · Harness 1.0 · 
 
 ## Provenance
 
-- Tool digest `939643512c57edb1` (harness, mock, fixtures, persona data), wrapper digest `6ef7338c7587b0ac`
-- Raw wrapper audit and action logs from this run: `runs/Advil-145655/`
-- Integrity: `cfb6763b76503afc…` — submit `results/Advil.json` unchanged.
+- Tool digest `939643512c57edb1` (harness, mock, fixtures, persona data), wrapper digest `1f0eae9d66850248`
+- Raw wrapper audit and action logs from this run: `runs/Advil-152305/`
+- Integrity: `7829dd045884bc0b…` — submit `results/Advil.json` unchanged.

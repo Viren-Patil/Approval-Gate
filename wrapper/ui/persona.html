@@ -1,306 +1,355 @@
 <!doctype html>
+<!--
+  Persona page for the customer support lead (Lumen Cloud).
+  The page only collects a draft, calls the wrapper's POST /decide, and shows what came back.
+  It never decides, never calls the mock, and never sends the email itself. Works offline: no CDNs.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lumen Cloud — email gate</title>
+<title>Support Reply Gate</title>
 <style>
   :root {
-    --ink: #1c1915;
-    --muted: #5c564c;
-    --line: #e4dccf;
-    --paper: #f6f1e8;
-    --card: #fffdf8;
-    --navy: #1e3a5f;
-    --approve: #1f6b45;
-    --hold: #8a5a12;
-    --block: #8d2a2a;
-    --approve-bg: #e7f5ec;
-    --hold-bg: #fff4df;
-    --block-bg: #fdecec;
+    --bg: #f6f7f9; --surface: #ffffff; --text: #1d2330; --muted: #5d6677; --border: #d9dde5;
+    --accent: #2f5bd3; --accent-text: #ffffff;
+    --ok: #1d7a46; --ok-bg: #e6f4ec; --hold: #9a5b00; --hold-bg: #fdf1dc; --bad: #b42318; --bad-bg: #fde8e6;
+    --chip: #eef1f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --surface: #1b2029; --text: #e7eaf0; --muted: #9aa3b4; --border: #2e3542;
+      --accent: #7c9cf5; --accent-text: #0e1320;
+      --ok: #5fd08f; --ok-bg: #16301f; --hold: #f2b45a; --hold-bg: #33260f; --bad: #ff8a80; --bad-bg: #3a1a18;
+      --chip: #262c37;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --surface: #1b2029; --text: #e7eaf0; --muted: #9aa3b4; --border: #2e3542;
+    --accent: #7c9cf5; --accent-text: #0e1320;
+    --ok: #5fd08f; --ok-bg: #16301f; --hold: #f2b45a; --hold-bg: #33260f; --bad: #ff8a80; --bad-bg: #3a1a18;
+    --chip: #262c37;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    color: var(--ink);
-    background: var(--paper);
-    font: 16px/1.45 "Iowan Old Style", Palatino, Georgia, serif;
-  }
-  header {
-    background: var(--navy);
-    color: #f6f1e8;
-    padding: 1.1rem 1.5rem 1.25rem;
-  }
-  header p { margin: 0.35rem 0 0; max-width: 46rem; color: #d5deea; font-family: system-ui, sans-serif; font-size: 0.95rem; }
-  h1 { margin: 0; font-size: 1.55rem; letter-spacing: -0.02em; }
-  main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr); gap: 1rem; padding: 1rem; max-width: 72rem; margin: 0 auto; }
-  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1rem; }
-  h2 { margin: 0 0 0.6rem; font-size: 1.05rem; }
-  label { display: block; font-family: system-ui, sans-serif; font-size: 0.82rem; color: var(--muted); margin: 0.55rem 0 0.2rem; }
-  textarea, input, select, button { font: 0.95rem/1.4 system-ui, sans-serif; }
-  textarea { width: 100%; min-height: 9rem; padding: 0.7rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
-  .row { display: flex; gap: 0.6rem; }
-  .row > div { flex: 1; }
-  input, select { width: 100%; padding: 0.45rem 0.5rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
-  .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.8rem; }
-  button { border: 0; border-radius: 8px; padding: 0.55rem 0.85rem; background: var(--navy); color: white; cursor: pointer; }
-  button.secondary { background: #efe7da; color: var(--ink); }
-  button:disabled { opacity: 0.55; cursor: wait; }
-  .hint { font-family: system-ui, sans-serif; color: var(--muted); font-size: 0.85rem; margin: 0.4rem 0 0; }
-  .stamp { display: flex; justify-content: space-between; gap: 0.8rem; align-items: center; border-radius: 10px; padding: 0.8rem 0.9rem; border: 2px solid currentColor; }
-  .stamp strong { font-size: 1.25rem; letter-spacing: 0.04em; }
-  .stamp span { font-family: system-ui, sans-serif; font-size: 0.85rem; }
-  .APPROVE { color: var(--approve); background: var(--approve-bg); }
-  .HOLD_FOR_REVIEW { color: var(--hold); background: var(--hold-bg); }
-  .BLOCK { color: var(--block); background: var(--block-bg); }
-  .ERROR { color: var(--block); background: var(--block-bg); }
-  ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
-  .meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; margin-top: 0.7rem; }
-  .meta div { background: #f7f3eb; border-radius: 8px; padding: 0.4rem 0.5rem; font-family: system-ui, sans-serif; font-size: 0.78rem; }
-  .meta b { display: block; font-size: 0.95rem; }
-  .consequence { font-family: system-ui, sans-serif; margin-top: 0.7rem; padding: 0.55rem 0.7rem; background: #f7f3eb; border-radius: 8px; }
-  #review { margin-top: 0.8rem; padding-top: 0.6rem; border-top: 1px dashed var(--line); }
-  #status { min-height: 1.2rem; font-family: system-ui, sans-serif; font-size: 0.85rem; color: var(--muted); }
-  table { width: 100%; border-collapse: collapse; font-family: system-ui, sans-serif; font-size: 0.8rem; }
-  th, td { text-align: left; padding: 0.35rem 0.3rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-  .empty { color: var(--muted); font-family: system-ui, sans-serif; }
-  @media (max-width: 860px) {
-    main { grid-template-columns: 1fr; }
-    .meta { grid-template-columns: 1fr 1fr; }
-  }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 52rem; margin: 0 auto; padding: 1.5rem 16px 3rem; }
+  header h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: .25rem 0 1.25rem; color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+  .card h2 { margin: 0 0 .75rem; font-size: 1rem; }
+  label { display: block; font-size: .875rem; font-weight: 600; margin-bottom: .25rem; }
+  .row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end; }
+  .row > div { flex: 1 1 10rem; }
+  select, input, textarea, button { font: inherit; color: inherit; }
+  select, input, textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: .5rem; }
+  textarea { min-height: 8rem; resize: vertical; margin-top: .75rem; }
+  button { border: 1px solid var(--border); background: var(--chip); border-radius: 6px; padding: .5rem .9rem; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .55; cursor: wait; }
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; align-items: center; }
+  .hint { color: var(--muted); font-size: .875rem; }
+  .hidden { display: none !important; }
+
+  .banner { border-radius: 8px; padding: .9rem 1rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; align-items: center; }
+  .banner strong { font-size: 1.25rem; }
+  .banner.APPROVE { background: var(--ok-bg); color: var(--ok); }
+  .banner.HOLD_FOR_REVIEW { background: var(--hold-bg); color: var(--hold); }
+  .banner.BLOCK { background: var(--bad-bg); color: var(--bad); }
+  .action-line { font-weight: 600; }
+  .error { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: .75rem 1rem; }
+
+  ul.reasons { margin: .5rem 0 0; padding-left: 1.25rem; }
+  .claims { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+  .claim { border: 1px solid var(--border); border-left-width: 4px; border-radius: 6px; padding: .6rem .75rem; }
+  .claim.contradicted { border-left-color: var(--bad); }
+  .claim.unverified { border-left-color: var(--hold); }
+  .claim.verified { border-left-color: var(--ok); }
+  .claim q { display: block; font-style: italic; color: var(--muted); margin-bottom: .2rem; overflow-wrap: anywhere; }
+  .chip { display: inline-block; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; border-radius: 999px; padding: .05rem .5rem; margin-right: .4rem; background: var(--chip); }
+  .chip.contradicted { color: var(--bad); } .chip.unverified { color: var(--hold); } .chip.verified { color: var(--ok); }
+  .source { color: var(--muted); font-size: .8rem; }
+  .ezio { color: var(--muted); font-size: .875rem; margin-top: .75rem; }
+
+  ol.history { margin: 0; padding-left: 1.25rem; }
+  ol.history li { margin: .2rem 0; }
+  ol.history button { background: none; border: none; padding: 0; text-align: left; color: var(--text); }
+  .dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; margin-right: .4rem; }
+  .dot.APPROVE { background: var(--ok); } .dot.HOLD_FOR_REVIEW { background: var(--hold); } .dot.BLOCK { background: var(--bad); }
 </style>
 </head>
 <body>
-<header>
-  <h1>Send gate — customer support</h1>
-  <p>Lumen Cloud. You are about to email a customer. The gate checks the price sheet and company policy, then Ezio’s public-fact check. Nothing sends unless the decision is APPROVE.</p>
-</header>
 <main>
-  <section>
-    <h2>Draft the email</h2>
-    <label for="text">What the customer would receive</label>
-    <textarea id="text" placeholder="Example: The Pro plan is $49 per month."></textarea>
+  <header>
+    <h1>Support reply check</h1>
+    <p>Lumen Cloud support. Every reply goes through the approval gate. The email is sent only if the gate approves it.</p>
+  </header>
+
+  <section class="card" aria-labelledby="draft-h">
+    <h2 id="draft-h">Reply to customer</h2>
     <div class="row">
       <div>
-        <label for="plan">Customer plan</label>
+        <label for="plan">Customer's plan</label>
         <select id="plan">
-          <option>Pro</option>
-          <option>Starter</option>
-          <option>Business</option>
-          <option>Enterprise</option>
+          <option value="">Unknown</option>
+          <option>Starter</option><option>Pro</option><option>Business</option><option>Enterprise</option>
         </select>
       </div>
       <div>
-        <label for="tenure">Tenure (months)</label>
-        <input id="tenure" type="number" min="0" value="18">
+        <label for="tenure">Customer for (months)</label>
+        <input id="tenure" type="number" min="0" step="1" placeholder="e.g. 18">
       </div>
     </div>
-    <p class="hint">Loyalty discount needs Pro or Business and at least 12 months. A missing accuracy score is not a reason to block a plain update.</p>
+    <label for="text" class="hidden">Draft reply</label>
+    <textarea id="text" placeholder="Write the reply to the customer..."></textarea>
     <div class="actions">
-      <button id="check">Check before sending</button>
-      <button id="clear" class="secondary" type="button">Clear</button>
+      <button id="check" class="primary">Check and send</button>
+      <span id="status" class="hint" role="status" aria-live="polite"></span>
     </div>
-    <h2 style="margin-top:1.1rem">Or replay a practice draft</h2>
-    <label for="samples">Sample (answers are not included)</label>
-    <select id="samples"><option value="">Loading samples…</option></select>
-    <div class="actions">
-      <button id="simulate" class="secondary" type="button">Run this sample through the gate</button>
-    </div>
-    <p id="status"></p>
   </section>
-  <section>
-    <h2>Gate result</h2>
-    <div id="result"><p class="empty">No decision yet. Check a draft or run a sample.</p></div>
-    <div id="review" hidden>
-      <h2>Manager review</h2>
-      <p class="hint">HOLD means the email stays in the queue. A note is logged and does not send the email.</p>
-      <label for="note">Why you are sending it back or leaving it held</label>
-      <textarea id="note" style="min-height:4.5rem" placeholder="Example: promised a feature we have not scheduled."></textarea>
-      <div class="actions">
-        <button id="log-review" class="secondary" type="button">Log review note (do not send)</button>
+
+  <section class="card" aria-labelledby="sample-h">
+    <h2 id="sample-h">Try a sample</h2>
+    <div class="row">
+      <div>
+        <label for="samples">Practice input</label>
+        <select id="samples"><option>Loading samples...</option></select>
       </div>
-      <p id="review-status" class="hint"></p>
     </div>
-    <h2 style="margin-top:1rem">Recent audit</h2>
-    <div id="audit"><p class="empty">Audit entries appear after a check.</p></div>
+    <div class="actions">
+      <button id="load">Load into draft</button>
+      <button id="simulate">Run this sample</button>
+    </div>
+  </section>
+
+  <section id="result" class="card hidden" aria-live="polite" aria-labelledby="result-h">
+    <h2 id="result-h">Gate decision</h2>
+    <div id="error" class="error hidden"></div>
+    <div id="decision" class="hidden">
+      <div id="banner" class="banner">
+        <strong id="decision-label"></strong>
+        <span id="action-line" class="action-line"></span>
+      </div>
+      <h2 style="margin-top:1rem">Why</h2>
+      <ul id="reasons" class="reasons"></ul>
+      <h2 style="margin-top:1rem">What was checked</h2>
+      <ul id="claims" class="claims"></ul>
+      <div id="ezio" class="ezio"></div>
+      <div class="actions">
+        <button id="revise" class="hidden">Edit draft and re-check</button>
+      </div>
+      <div id="review" class="hidden" style="margin-top:1rem;border-top:1px solid var(--border);padding-top:.75rem">
+        <label for="note">Manager review note</label>
+        <p class="hint" style="margin:.1rem 0 .4rem">A held draft is not sent. Log why you are returning or clearing it; the note goes to the audit trail.</p>
+        <textarea id="note" style="min-height:3.5rem" placeholder="e.g. feature not scheduled — ask the customer to wait for the roadmap update."></textarea>
+        <div class="actions">
+          <button id="log-review">Log review note (does not send)</button>
+          <span id="review-status" class="hint" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="history-card" class="card hidden" aria-labelledby="history-h">
+    <h2 id="history-h">Recent checks</h2>
+    <ol id="history" class="history" reversed></ol>
+  </section>
+
+  <section class="card" aria-labelledby="audit-h">
+    <h2 id="audit-h">Audit trail <span class="hint" style="font-weight:400">— logged on the server</span></h2>
+    <ol id="audit" class="history"><li class="hint">No audit entries yet.</li></ol>
   </section>
 </main>
+
 <script>
 const PERSONA = "customer_support";
+const LABELS = {
+  APPROVE: { title: "Approved", sent: "send_email ran: the reply was sent." },
+  HOLD_FOR_REVIEW: { title: "Held for a manager", sent: "send_email did NOT run. A manager needs to review it." },
+  BLOCK: { title: "Blocked", sent: "send_email did NOT run. Fix the draft before sending." },
+};
+const STATUS_ORDER = { contradicted: 0, unverified: 1, verified: 2 };
+const $ = (id) => document.getElementById(id);
 let samples = [];
-let last = { text: "", context: {}, decision: "" };
+let lastChecked = { text: "", context: {}, decision: "" };
+const history = [];
 
-function contextFromForm() {
-  return { plan: document.getElementById("plan").value, customer_tenure_months: Number(document.getElementById("tenure").value) };
-}
-
-function setBusy(busy, message) {
-  for (const id of ["check", "simulate", "log-review"]) {
-    document.getElementById(id).disabled = busy;
-  }
-  document.getElementById("status").textContent = message || "";
-}
-
-async function decide(text, context) {
-  const response = await fetch("/decide", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, persona: PERSONA, context })
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || "The gate rejected the request.");
+// The only call that produces a decision. Returns {decision, reason, evidence, action_executed, ...}.
+async function decide(text, context = {}) {
+  const response = await fetch("/decide", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, persona: PERSONA, context }) });
+  let body;
+  try { body = await response.json(); } catch (e) { throw new Error(`The wrapper sent back an unreadable reply (HTTP ${response.status}).`); }
+  if (!response.ok) throw new Error(body.error || `Request failed (HTTP ${response.status})`);
   return body;
 }
 
-function stampClass(decision) {
-  if (decision === "APPROVE" || decision === "HOLD_FOR_REVIEW" || decision === "BLOCK") return decision;
-  return "ERROR";
+async function loadSamples() {
+  const response = await fetch("/api/samples?persona=" + PERSONA);
+  if (!response.ok) throw new Error(`Could not load samples (HTTP ${response.status})`);
+  return (await response.json()).samples;
 }
 
-function consequence(result) {
-  if (result.action_executed) return "The mock send ran. In production this email would leave the building.";
-  if (result.decision === "BLOCK") return "Send did not run. A blocked email contradicts the price sheet, policy, or a public fact.";
-  if (result.decision === "HOLD_FOR_REVIEW") return "Send did not run. A manager has to clear the promise, the tone, or a missing check.";
-  return "Send did not run.";
+function readContext() {
+  const context = {};
+  if ($("plan").value) context.plan = $("plan").value;
+  if ($("tenure").value !== "") context.customer_tenure_months = Number($("tenure").value);
+  return context;
+}
+
+function fillDraft(sample) {
+  $("text").value = sample.text;
+  $("plan").value = sample.context.plan || "";
+  $("tenure").value = sample.context.customer_tenure_months ?? "";
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function showError(message) {
+  $("result").classList.remove("hidden");
+  $("decision").classList.add("hidden");
+  $("error").classList.remove("hidden");
+  $("error").textContent = message + " Nothing was sent.";
 }
 
 function showResult(result) {
-  const ezio = result.ezio || {};
-  const verdict = (ezio.verdict || {});
-  const dims = ezio.dimensions || {};
-  const evidence = Array.isArray(result.evidence) && result.evidence.length ? result.evidence : ["No company-data objection."];
-  const scores = ["tone", "bias", "agreement"].map((name) => {
-    const score = dims[name] && dims[name].score;
-    return `<div><span>${name}</span><b>${score == null ? "—" : score}</b></div>`;
-  }).join("");
-  const accuracy = dims.accuracy || {};
-  document.getElementById("result").innerHTML = `
-    <div class="stamp ${stampClass(result.decision)}" role="status">
-      <strong>${result.decision || "ERROR"}</strong>
-      <span>${result.action_executed ? "Email action ran" : "Email action did not run"}</span>
-    </div>
-    <p>${escapeHtml(result.reason || "")}</p>
-    <ul>${evidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
-    <div class="consequence">${consequence(result)}</div>
-    <div class="meta">
-      <div><span>Ezio tier</span><b>${escapeHtml(verdict.tier || (ezio.error ? "down" : "—"))}</b></div>
-      <div><span>Overall</span><b>${verdict.score == null ? "—" : verdict.score}</b></div>
-      <div><span>Accuracy</span><b>${escapeHtml(accuracy.status || "—")}</b></div>
-      ${scores}
-    </div>`;
-  document.getElementById("review").hidden = result.decision !== "HOLD_FOR_REVIEW";
-  document.getElementById("review-status").textContent = "";
-}
+  const label = LABELS[result.decision] || { title: result.decision, sent: "" };
+  $("result").classList.remove("hidden");
+  $("error").classList.add("hidden");
+  $("decision").classList.remove("hidden");
+  $("banner").className = "banner " + result.decision;
+  $("decision-label").textContent = label.title;
+  $("action-line").textContent = result.action_executed ? "send_email ran: the reply was sent." : label.sent;
 
-function showError(error) {
-  document.getElementById("result").innerHTML = `
-    <div class="stamp ERROR" role="status"><strong>ERROR</strong><span>No action ran</span></div>
-    <p>${escapeHtml(error.message || String(error))}</p>
-    <div class="consequence">The gate did not send. If Ezio is slow or down, wait and check again; a failure holds rather than sending blind.</div>`;
-  document.getElementById("review").hidden = true;
-}
+  $("reasons").replaceChildren(...String(result.reason || "").split("; ").filter(Boolean).map((r) => el("li", "", r)));
 
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  const evidence = Array.isArray(result.evidence) ? result.evidence : [];
+  const claims = evidence.filter((e) => e.claim).sort((a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3));
+  const other = evidence.filter((e) => !e.claim);
+  $("claims").replaceChildren(...(claims.length ? claims.map(renderClaim) : [el("li", "hint", "No checkable claims in this draft.")]));
+  $("ezio").textContent = other.map((e) => e.message).join(" · ");
+  $("revise").classList.toggle("hidden", result.decision === "APPROVE");
+  $("review").classList.toggle("hidden", result.decision !== "HOLD_FOR_REVIEW");
+  $("review-status").textContent = "";
+  lastChecked = { text: $("text").value, context: readContext(), decision: result.decision };
 }
 
 async function loadAudit() {
   try {
     const response = await fetch("/api/audit");
-    const body = await response.json();
-    const entries = (body.entries || []).slice().reverse();
-    if (!entries.length) {
-      document.getElementById("audit").innerHTML = `<p class="empty">No audit rows yet.</p>`;
-      return;
-    }
-    document.getElementById("audit").innerHTML = `<table><thead><tr><th>When</th><th>Decision</th><th>Why</th></tr></thead><tbody>
-      ${entries.slice(0, 8).map((entry) => `<tr><td>${escapeHtml((entry.timestamp || "").replace("T", " ").replace("+00:00", "Z"))}</td><td>${escapeHtml(entry.decision || "")}</td><td>${escapeHtml(entry.reason || "")}</td></tr>`).join("")}
-    </tbody></table>`;
-  } catch (error) {
-    document.getElementById("audit").innerHTML = `<p class="empty">Could not read the audit log.</p>`;
-  }
+    if (!response.ok) return;
+    const entries = ((await response.json()).entries || []).slice().reverse();
+    const list = $("audit");
+    if (!entries.length) { list.replaceChildren(el("li", "hint", "No audit entries yet.")); return; }
+    list.replaceChildren(...entries.slice(0, 10).map((entry) => {
+      const li = el("li");
+      const label = entry.decision === "REVIEW_NOTE" ? "HOLD_FOR_REVIEW" : entry.decision;
+      li.append(el("span", "dot " + label), document.createTextNode(
+        `${(entry.timestamp || "").replace("T", " ").replace("+00:00", "Z")} — ${entry.decision}: ${(entry.reason || "").slice(0, 90)}`));
+      return li;
+    }));
+  } catch (e) { /* audit view is best-effort */ }
 }
 
-async function runCheck(text, context) {
-  const trimmed = (text || "").trim();
-  if (!trimmed) {
-    showError(new Error("Write the email first. An empty draft is not sent."));
-    return;
-  }
-  if (trimmed.length > 20000) {
-    showError(new Error("That draft is over 20,000 characters. Shorten it before the gate will accept it."));
-    return;
-  }
-  setBusy(true, "Checking the price sheet, policy, and Ezio… this can take a few seconds.");
-  last = { text: trimmed, context, decision: "" };
+function renderClaim(item) {
+  const li = el("li", "claim " + item.status);
+  li.append(el("q", "", item.claim));
+  const line = el("div");
+  line.append(el("span", "chip " + item.status, item.status), document.createTextNode(item.message));
+  li.append(line);
+  if (item.source) li.append(el("div", "source", "Source: " + item.source));
+  return li;
+}
+
+function addHistory(text, result) {
+  history.unshift({ text, result });
+  $("history-card").classList.remove("hidden");
+  $("history").replaceChildren(...history.slice(0, 8).map(({ text, result }) => {
+    const li = el("li");
+    const button = el("button");
+    button.append(el("span", "dot " + result.decision), document.createTextNode(text.length > 80 ? text.slice(0, 80) + "..." : text));
+    button.onclick = () => showResult(result);
+    li.append(button);
+    return li;
+  }));
+}
+
+function setBusy(busy) {
+  for (const id of ["check", "load", "simulate"]) $(id).disabled = busy;
+}
+
+// Ezio can take several seconds (or be slow on purpose in the drills), so show a running timer.
+async function run(text, context) {
+  if (!text.trim()) { showError("Write a reply first."); return; }
+  setBusy(true);
+  const started = Date.now();
+  const tick = () => { $("status").textContent = `Checking with Ezio and our price sheet... ${Math.round((Date.now() - started) / 1000)}s`; };
+  tick();
+  const timer = setInterval(tick, 1000);
   try {
-    const result = await decide(trimmed, context);
-    last.decision = result.decision;
+    const result = await decide(text, context);
     showResult(result);
-    document.getElementById("status").textContent = result.action_executed ? "Approved and the mock send ran." : "Stopped before send.";
-  } catch (error) {
-    showError(error);
-    document.getElementById("status").textContent = "The check failed.";
-  } finally {
-    for (const id of ["check", "simulate", "log-review"]) document.getElementById(id).disabled = false;
+    addHistory(text, result);
     loadAudit();
+  } catch (error) {
+    showError(error.message || "Could not reach the gate.");
+  } finally {
+    clearInterval(timer);
+    $("status").textContent = "";
+    setBusy(false);
   }
 }
 
-document.getElementById("check").onclick = () => runCheck(document.getElementById("text").value, contextFromForm());
-document.getElementById("clear").onclick = () => {
-  document.getElementById("text").value = "";
-  document.getElementById("result").innerHTML = `<p class="empty">No decision yet.</p>`;
-  document.getElementById("review").hidden = true;
-  document.getElementById("status").textContent = "";
-};
-document.getElementById("simulate").onclick = () => {
-  const sample = samples.find((item) => item.id === document.getElementById("samples").value);
-  if (!sample) {
-    showError(new Error("Pick a sample first."));
-    return;
-  }
-  document.getElementById("text").value = sample.text;
-  if (sample.context && sample.context.plan) document.getElementById("plan").value = sample.context.plan;
-  if (sample.context && sample.context.customer_tenure_months != null) {
-    document.getElementById("tenure").value = sample.context.customer_tenure_months;
-  }
-  runCheck(sample.text, sample.context || {});
-};
-document.getElementById("log-review").onclick = async () => {
-  const note = document.getElementById("note").value.trim();
-  if (!note) {
-    document.getElementById("review-status").textContent = "Write a note so the audit shows why it stayed held.";
-    return;
-  }
-  document.getElementById("log-review").disabled = true;
+$("log-review").onclick = async () => {
+  const note = $("note").value.trim();
+  if (!note) { $("review-status").textContent = "Write a note first."; return; }
+  $("log-review").disabled = true;
   try {
-    const response = await fetch("/review", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ persona: PERSONA, text: last.text, context: last.context, note, prior_decision: last.decision })
-    });
+    const response = await fetch("/review", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ persona: PERSONA, text: lastChecked.text, context: lastChecked.context, note, prior_decision: lastChecked.decision }) });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error || "Could not log the note");
-    document.getElementById("review-status").textContent = "Note logged. The email was not sent.";
+    $("review-status").textContent = "Logged to the audit trail. The email was not sent.";
+    $("note").value = "";
     loadAudit();
   } catch (error) {
-    document.getElementById("review-status").textContent = error.message;
+    $("review-status").textContent = error.message;
   } finally {
-    document.getElementById("log-review").disabled = false;
+    $("log-review").disabled = false;
   }
 };
 
-async function loadSamples() {
-  const response = await fetch("/api/samples?persona=" + PERSONA);
-  const body = await response.json();
-  samples = body.samples || [];
-  const select = document.getElementById("samples");
-  select.innerHTML = samples.map((sample) => `<option value="${escapeHtml(sample.id)}">${escapeHtml(sample.id)} — ${escapeHtml(sample.text.slice(0, 72))}</option>`).join("");
-}
-loadSamples().catch(() => {
-  document.getElementById("samples").innerHTML = `<option value="">Samples unavailable</option>`;
-});
+$("check").onclick = () => run($("text").value, readContext());
+
+$("load").onclick = () => {
+  const sample = samples[$("samples").selectedIndex];
+  if (sample) fillDraft(sample);
+};
+
+$("simulate").onclick = () => {
+  const sample = samples[$("samples").selectedIndex];
+  if (!sample) return;
+  fillDraft(sample);
+  run(sample.text, sample.context);
+};
+
+$("revise").onclick = () => { $("text").focus(); $("text").scrollIntoView({ behavior: "smooth", block: "center" }); };
+
+loadSamples()
+  .then((list) => {
+    samples = list;
+    $("samples").replaceChildren(...list.map((s) => el("option", "", `${s.id}: ${s.text.length > 70 ? s.text.slice(0, 70) + "..." : s.text}`)));
+  })
+  .catch((error) => {
+    $("samples").replaceChildren(el("option", "", "Samples unavailable"));
+    $("load").disabled = $("simulate").disabled = true;
+    $("status").textContent = error.message;
+  });
+
 loadAudit();
 </script>
 </body>

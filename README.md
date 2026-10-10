@@ -1,5 +1,42 @@
 # Approval Gate
 
+## Our submission (team Advil)
+
+**Persona:** customer support lead at Lumen Cloud (fictional). **Gated action:** `send_email`.
+
+Our wrapper checks every reply an agent drafts before it goes to a customer. It compares each price, discount, refund window, response time and trial claim against the company's price sheet and policies. It also reads Ezio's per-claim fact-check and its tone, bias and agreement scores. Then it returns APPROVE (the email is sent), HOLD_FOR_REVIEW (a manager looks first) or BLOCK (the draft has a wrong fact), with the reason and the evidence it used.
+
+**Run it** (Python 3.9+, standard library only, nothing to install):
+
+```bash
+# wrapper + persona page + mock Ezio, for the demo (prints the page address)
+python3 gate.py serve --persona customer_support
+
+# one input through the wrapper; writes wrapper/audit_log.jsonl and, if approved, wrapper/actions.log
+python3 gate.py try --persona customer_support --context '{"plan": "Pro", "customer_tenure_months": 18}' "The Pro plan is \$49 per month."
+
+# practice set and the six failure drills
+python3 gate.py practice --persona customer_support
+```
+
+**Where things are**
+
+| What | File |
+|---|---|
+| Check logic and decision flow | [`wrapper/wrapper.py`](wrapper/wrapper.py) |
+| Thresholds with one-sentence reasons | [`wrapper/policy.json`](wrapper/policy.json) |
+| One-page decision policy | [`docs/decision_policy.md`](docs/decision_policy.md) |
+| Audit-log sample (practice inputs) | [`docs/audit_log_sample.jsonl`](docs/audit_log_sample.jsonl), [`docs/actions_log_sample.log`](docs/actions_log_sample.log) |
+| Persona page | [`wrapper/ui/persona.html`](wrapper/ui/persona.html) |
+
+**Results:** final set 50.0/50 (6/6 bad caught, 0/6 good falsely blocked, 12/12 exact, 6/6 stretch, 6/6 failure drills). Practice set 16/16 exact.
+
+**AI tools:** Claude Code was used for drafting the wrapper check logic, the policy justifications, the persona page and these docs. We reviewed and tested the output with `gate.py practice` and our own extra inputs.
+
+---
+
+*The original starter README follows.*
+
 **A trust score doesn't make a decision. Your wrapper does.**
 
 An **Ezio AI** participant starter for the Decision-Grade AI Buildathon. Build a decision wrapper around a **local simulated Ezio API**, not another scoring engine and not the live Ezio product.

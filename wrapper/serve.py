@@ -101,12 +101,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(500, {"error": "Wrapper failed; inspect the decision implementation"})
 
     def _review(self):
+        """Log a reviewer's note on a held draft. Never sends the email."""
         try:
             length = int(self.headers.get("Content-Length") or 0)
             payload = json.loads(self.rfile.read(length) or b"{}")
             note = str(payload.get("note") or "").strip()
-            text = payload.get("text")
-            persona = payload.get("persona")
+            text, persona = payload.get("text"), payload.get("persona")
             context = payload.get("context") or {}
             prior = str(payload.get("prior_decision") or "")
             if not note or not isinstance(text, str) or persona not in PERSONAS or not isinstance(context, dict):

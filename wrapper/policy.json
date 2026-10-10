@@ -1,30 +1,21 @@
 {
-  "_help": "Customer-support policy for Lumen Cloud. Every threshold has a one-sentence why for the demo.",
+  "_help": "Your policy knobs. Every threshold needs a one-sentence 'why' (you'll be asked in the demo). evaluate.py warns while any 'why' still says TODO.",
 
   "on_ezio_failure": "HOLD_FOR_REVIEW",
-  "on_ezio_failure_why": "If Ezio cannot be reached or returns a malformed body, public-knowledge claims were not checked, so a clean company-data check still holds instead of sending; a contradicted price or policy still blocks.",
+  "on_ezio_failure_why": "If Ezio can't be reached we lose the tone and public-fact checks, so a person reviews the email; we fail closed but don't block a draft we never saw a problem in.",
 
-  "tier_decisions": { "GREEN": "APPROVE", "YELLOW": "HOLD_FOR_REVIEW", "RED": "BLOCK" },
-  "tier_decisions_why": "GREEN may send only after company data agrees; YELLOW is mixed risk a manager should see; RED means Ezio already found a serious problem, so the email does not go out.",
+  "tier_decisions": { "GREEN": "APPROVE", "YELLOW": "HOLD_FOR_REVIEW", "RED": "HOLD_FOR_REVIEW" },
+  "tier_decisions_why": "GREEN sends; YELLOW and RED go to a manager, because a BLOCK needs a specific contradicted claim (from our data or Ezio's claims[]), and a low overall score alone doesn't prove the email is wrong.",
 
   "dimension_minimums": {
-    "tone": {
-      "hold_below": 60,
-      "why": "A support email can be warm, but hype and guarantees drop tone well below 60 while the overall tier stays green, and those still need a manager."
-    },
-    "bias": {
-      "hold_below": 70,
-      "why": "One strong adjective is normal; two or more one-sided phrases put bias under 70 and the draft should be rewritten before a customer sees it."
-    },
-    "agreement": {
-      "hold_below": 60,
-      "why": "A single polite agreement scores about 75 and sends, but stacked flattery or agreeing with a customer's incorrect claim drops agreement to 50 or below and must go to a manager."
-    }
+    "tone":      { "hold_below": 60, "why": "Normal friendly support emails score 90+, while several '!!!', all-caps words, or hype words drop tone below 60, which is the over-the-top style rule 4 sends to a manager." },
+    "bias":      { "hold_below": 60, "why": "One loaded word like 'clearly' still scores 85; below 60 the email is pushing one side hard, which a customer-facing message shouldn't do." },
+    "agreement": { "hold_below": 60, "why": "A single polite 'good question' scores 75 and is fine; below 60 the email is piling on agreement with the customer, which is how agents end up confirming a customer's incorrect claim (rule 4)." }
   },
 
   "when_accuracy_not_scored": "ignore",
-  "when_accuracy_not_scored_why": "Not scored means Ezio found no public claim to check. Company files still gate prices and policies, and an email with nothing to check is safe to send.",
+  "when_accuracy_not_scored_why": "Most support emails make no public-knowledge claims, and rule 5 says a missing accuracy score is not a reason to block; our own price-sheet and policy checks cover the company facts.",
 
   "when_accuracy_unavailable": "HOLD_FOR_REVIEW",
-  "when_accuracy_unavailable_why": "The fact-check service was down, so laws and other public claims were not reviewed. Hold unless company data already shows the draft is false, in which case block."
+  "when_accuracy_unavailable_why": "The fact-check service being down means a public claim (like a law) could be wrong without anyone seeing it, so a person reviews before sending."
 }
