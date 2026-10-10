@@ -1,79 +1,299 @@
 <!doctype html>
 <!--
-  YOUR PERSONA PAGE. This is a skeleton; the UI is yours to design (25 points, optional).
-  Any approach is fine: edit this file, replace it with a built React/Vue/Svelte app in this folder,
-  or write plain JS. wrapper/serve.py serves everything in wrapper/ui/, with persona.html at "/".
-  Offline only: no CDNs or external services at demo time.
-
-  WHAT THE PAGE MUST DO (what judges score)
-    1. SEND AN INPUT, GET A RESPONSE: a draft goes to POST /decide (your wrapper), and the page shows the
-       decision, the reason, the evidence, and whether the mock action ran.
-    2. SIMULATE THE ACTION FROM A TEST INPUT: let the user pick a sample input (GET /api/samples?persona=...),
-       send it, and show the gate working: APPROVE -> the action ran; HOLD/BLOCK -> the action did NOT run.
-    3. Make it usable by someone in your persona's job: clear risk, errors shown plainly, a review step.
-
-  RULES
-    - Decisions come only from POST /decide. Do not decide, call the mock, or run the action in the browser.
-    - Latest test-run results are NOT your job: run `python3 gate.py results` for the color-coded viewer.
+  Persona page for the customer support lead (Lumen Cloud).
+  The page only collects a draft, calls the wrapper's POST /decide, and shows what came back.
+  It never decides, never calls the mock, and never sends the email itself. Works offline: no CDNs.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TODO: your page title</title>
+<title>Support Reply Gate</title>
 <style>
-  /* TODO: design it. Think about who uses this: the person who is about to send / submit / publish. */
-  body { font: 16px/1.5 system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
-  textarea { width: 100%; min-height: 8rem; }
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --text: #1d2330; --muted: #5d6677; --border: #d9dde5;
+    --accent: #2f5bd3; --accent-text: #ffffff;
+    --ok: #1d7a46; --ok-bg: #e6f4ec; --hold: #9a5b00; --hold-bg: #fdf1dc; --bad: #b42318; --bad-bg: #fde8e6;
+    --chip: #eef1f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --surface: #1b2029; --text: #e7eaf0; --muted: #9aa3b4; --border: #2e3542;
+      --accent: #7c9cf5; --accent-text: #0e1320;
+      --ok: #5fd08f; --ok-bg: #16301f; --hold: #f2b45a; --hold-bg: #33260f; --bad: #ff8a80; --bad-bg: #3a1a18;
+      --chip: #262c37;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --surface: #1b2029; --text: #e7eaf0; --muted: #9aa3b4; --border: #2e3542;
+    --accent: #7c9cf5; --accent-text: #0e1320;
+    --ok: #5fd08f; --ok-bg: #16301f; --hold: #f2b45a; --hold-bg: #33260f; --bad: #ff8a80; --bad-bg: #3a1a18;
+    --chip: #262c37;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 52rem; margin: 0 auto; padding: 1.5rem 16px 3rem; }
+  header h1 { margin: 0; font-size: 1.5rem; }
+  header p { margin: .25rem 0 1.25rem; color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+  .card h2 { margin: 0 0 .75rem; font-size: 1rem; }
+  label { display: block; font-size: .875rem; font-weight: 600; margin-bottom: .25rem; }
+  .row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end; }
+  .row > div { flex: 1 1 10rem; }
+  select, input, textarea, button { font: inherit; color: inherit; }
+  select, input, textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: .5rem; }
+  textarea { min-height: 8rem; resize: vertical; margin-top: .75rem; }
+  button { border: 1px solid var(--border); background: var(--chip); border-radius: 6px; padding: .5rem .9rem; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .55; cursor: wait; }
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; align-items: center; }
+  .hint { color: var(--muted); font-size: .875rem; }
+  .hidden { display: none !important; }
+
+  .banner { border-radius: 8px; padding: .9rem 1rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; align-items: center; }
+  .banner strong { font-size: 1.25rem; }
+  .banner.APPROVE { background: var(--ok-bg); color: var(--ok); }
+  .banner.HOLD_FOR_REVIEW { background: var(--hold-bg); color: var(--hold); }
+  .banner.BLOCK { background: var(--bad-bg); color: var(--bad); }
+  .action-line { font-weight: 600; }
+  .error { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: .75rem 1rem; }
+
+  ul.reasons { margin: .5rem 0 0; padding-left: 1.25rem; }
+  .claims { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+  .claim { border: 1px solid var(--border); border-left-width: 4px; border-radius: 6px; padding: .6rem .75rem; }
+  .claim.contradicted { border-left-color: var(--bad); }
+  .claim.unverified { border-left-color: var(--hold); }
+  .claim.verified { border-left-color: var(--ok); }
+  .claim q { display: block; font-style: italic; color: var(--muted); margin-bottom: .2rem; overflow-wrap: anywhere; }
+  .chip { display: inline-block; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; border-radius: 999px; padding: .05rem .5rem; margin-right: .4rem; background: var(--chip); }
+  .chip.contradicted { color: var(--bad); } .chip.unverified { color: var(--hold); } .chip.verified { color: var(--ok); }
+  .source { color: var(--muted); font-size: .8rem; }
+  .ezio { color: var(--muted); font-size: .875rem; margin-top: .75rem; }
+
+  ol.history { margin: 0; padding-left: 1.25rem; }
+  ol.history li { margin: .2rem 0; }
+  ol.history button { background: none; border: none; padding: 0; text-align: left; color: var(--text); }
+  .dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; margin-right: .4rem; }
+  .dot.APPROVE { background: var(--ok); } .dot.HOLD_FOR_REVIEW { background: var(--hold); } .dot.BLOCK { background: var(--bad); }
 </style>
 </head>
 <body>
-<h1>TODO: name this screen for your persona's job</h1>
+<main>
+  <header>
+    <h1>Support reply check</h1>
+    <p>Lumen Cloud support. Every reply goes through the approval gate. The email is sent only if the gate approves it.</p>
+  </header>
 
-<!-- TODO (1): inputs. Text is required; context is a JSON object your persona rules may use. -->
-<label for="text">Draft</label>
-<textarea id="text"></textarea>
-<button id="check">Check</button>
+  <section class="card" aria-labelledby="draft-h">
+    <h2 id="draft-h">Reply to customer</h2>
+    <div class="row">
+      <div>
+        <label for="plan">Customer's plan</label>
+        <select id="plan">
+          <option value="">Unknown</option>
+          <option>Starter</option><option>Pro</option><option>Business</option><option>Enterprise</option>
+        </select>
+      </div>
+      <div>
+        <label for="tenure">Customer for (months)</label>
+        <input id="tenure" type="number" min="0" step="1" placeholder="e.g. 18">
+      </div>
+    </div>
+    <label for="text" class="hidden">Draft reply</label>
+    <textarea id="text" placeholder="Write the reply to the customer..."></textarea>
+    <div class="actions">
+      <button id="check" class="primary">Check and send</button>
+      <span id="status" class="hint" role="status" aria-live="polite"></span>
+    </div>
+  </section>
 
-<!-- TODO (2): sample picker. Fill this from /api/samples (see loadSamples below). -->
-<select id="samples"></select>
-<button id="simulate">Simulate with this sample</button>
+  <section class="card" aria-labelledby="sample-h">
+    <h2 id="sample-h">Try a sample</h2>
+    <div class="row">
+      <div>
+        <label for="samples">Practice input</label>
+        <select id="samples"><option>Loading samples...</option></select>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="load">Load into draft</button>
+      <button id="simulate">Run this sample</button>
+    </div>
+  </section>
 
-<!-- TODO (3): present the result for a human, not as raw JSON. Replace this <pre>. -->
-<pre id="out"></pre>
+  <section id="result" class="card hidden" aria-live="polite" aria-labelledby="result-h">
+    <h2 id="result-h">Gate decision</h2>
+    <div id="error" class="error hidden"></div>
+    <div id="decision" class="hidden">
+      <div id="banner" class="banner">
+        <strong id="decision-label"></strong>
+        <span id="action-line" class="action-line"></span>
+      </div>
+      <h2 style="margin-top:1rem">Why</h2>
+      <ul id="reasons" class="reasons"></ul>
+      <h2 style="margin-top:1rem">What was checked</h2>
+      <ul id="claims" class="claims"></ul>
+      <div id="ezio" class="ezio"></div>
+      <div class="actions">
+        <button id="revise" class="hidden">Edit draft and re-check</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="history-card" class="card hidden" aria-labelledby="history-h">
+    <h2 id="history-h">Recent checks</h2>
+    <ol id="history" class="history" reversed></ol>
+  </section>
+</main>
 
 <script>
-// Set this to the persona you chose: customer_support | paralegal | financial_analyst
 const PERSONA = "customer_support";
+const LABELS = {
+  APPROVE: { title: "Approved", sent: "send_email ran: the reply was sent." },
+  HOLD_FOR_REVIEW: { title: "Held for a manager", sent: "send_email did NOT run. A manager needs to review it." },
+  BLOCK: { title: "Blocked", sent: "send_email did NOT run. Fix the draft before sending." },
+};
+const STATUS_ORDER = { contradicted: 0, unverified: 1, verified: 2 };
+const $ = (id) => document.getElementById(id);
+let samples = [];
+const history = [];
 
-// Plumbing: the one call every version of this page makes. Returns {decision, reason, evidence, action_executed, ...}.
+// The only call that produces a decision. Returns {decision, reason, evidence, action_executed, ...}.
 async function decide(text, context = {}) {
   const response = await fetch("/decide", { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, persona: PERSONA, context }) });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.error || "Request failed");
+  let body;
+  try { body = await response.json(); } catch (e) { throw new Error(`The wrapper sent back an unreadable reply (HTTP ${response.status}).`); }
+  if (!response.ok) throw new Error(body.error || `Request failed (HTTP ${response.status})`);
   return body;
 }
 
-// Plumbing: sample inputs from the practice set: [{id, text, context}, ...]
 async function loadSamples() {
   const response = await fetch("/api/samples?persona=" + PERSONA);
+  if (!response.ok) throw new Error(`Could not load samples (HTTP ${response.status})`);
   return (await response.json()).samples;
 }
 
-// TODO: show the result. Decision, reason, and evidence are what a person needs to decide; also show
-// whether the action ran (result.action_executed). Handle loading and errors (including a slow or down Ezio).
-function showResult(result) {
-  document.getElementById("out").textContent = JSON.stringify(result, null, 2);
+function readContext() {
+  const context = {};
+  if ($("plan").value) context.plan = $("plan").value;
+  if ($("tenure").value !== "") context.customer_tenure_months = Number($("tenure").value);
+  return context;
 }
 
-// TODO: wire the buttons. Disable them while a request is running; catch errors and show them.
-document.getElementById("check").onclick = async () => {
-  showResult(await decide(document.getElementById("text").value));
+function fillDraft(sample) {
+  $("text").value = sample.text;
+  $("plan").value = sample.context.plan || "";
+  $("tenure").value = sample.context.customer_tenure_months ?? "";
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function showError(message) {
+  $("result").classList.remove("hidden");
+  $("decision").classList.add("hidden");
+  $("error").classList.remove("hidden");
+  $("error").textContent = message + " Nothing was sent.";
+}
+
+function showResult(result) {
+  const label = LABELS[result.decision] || { title: result.decision, sent: "" };
+  $("result").classList.remove("hidden");
+  $("error").classList.add("hidden");
+  $("decision").classList.remove("hidden");
+  $("banner").className = "banner " + result.decision;
+  $("decision-label").textContent = label.title;
+  $("action-line").textContent = result.action_executed ? "send_email ran: the reply was sent." : label.sent;
+
+  $("reasons").replaceChildren(...String(result.reason || "").split("; ").filter(Boolean).map((r) => el("li", "", r)));
+
+  const evidence = Array.isArray(result.evidence) ? result.evidence : [];
+  const claims = evidence.filter((e) => e.claim).sort((a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3));
+  const other = evidence.filter((e) => !e.claim);
+  $("claims").replaceChildren(...(claims.length ? claims.map(renderClaim) : [el("li", "hint", "No checkable claims in this draft.")]));
+  $("ezio").textContent = other.map((e) => e.message).join(" · ");
+  $("revise").classList.toggle("hidden", result.decision === "APPROVE");
+}
+
+function renderClaim(item) {
+  const li = el("li", "claim " + item.status);
+  li.append(el("q", "", item.claim));
+  const line = el("div");
+  line.append(el("span", "chip " + item.status, item.status), document.createTextNode(item.message));
+  li.append(line);
+  if (item.source) li.append(el("div", "source", "Source: " + item.source));
+  return li;
+}
+
+function addHistory(text, result) {
+  history.unshift({ text, result });
+  $("history-card").classList.remove("hidden");
+  $("history").replaceChildren(...history.slice(0, 8).map(({ text, result }) => {
+    const li = el("li");
+    const button = el("button");
+    button.append(el("span", "dot " + result.decision), document.createTextNode(text.length > 80 ? text.slice(0, 80) + "..." : text));
+    button.onclick = () => showResult(result);
+    li.append(button);
+    return li;
+  }));
+}
+
+function setBusy(busy) {
+  for (const id of ["check", "load", "simulate"]) $(id).disabled = busy;
+}
+
+// Ezio can take several seconds (or be slow on purpose in the drills), so show a running timer.
+async function run(text, context) {
+  if (!text.trim()) { showError("Write a reply first."); return; }
+  setBusy(true);
+  const started = Date.now();
+  const tick = () => { $("status").textContent = `Checking with Ezio and our price sheet... ${Math.round((Date.now() - started) / 1000)}s`; };
+  tick();
+  const timer = setInterval(tick, 1000);
+  try {
+    const result = await decide(text, context);
+    showResult(result);
+    addHistory(text, result);
+  } catch (error) {
+    showError(error.message || "Could not reach the gate.");
+  } finally {
+    clearInterval(timer);
+    $("status").textContent = "";
+    setBusy(false);
+  }
+}
+
+$("check").onclick = () => run($("text").value, readContext());
+
+$("load").onclick = () => {
+  const sample = samples[$("samples").selectedIndex];
+  if (sample) fillDraft(sample);
 };
 
-// TODO: populate #samples from loadSamples(), then make "Simulate" send the chosen sample's text and context
-// through decide() and show clearly whether the action ran.
+$("simulate").onclick = () => {
+  const sample = samples[$("samples").selectedIndex];
+  if (!sample) return;
+  fillDraft(sample);
+  run(sample.text, sample.context);
+};
+
+$("revise").onclick = () => { $("text").focus(); $("text").scrollIntoView({ behavior: "smooth", block: "center" }); };
+
+loadSamples()
+  .then((list) => {
+    samples = list;
+    $("samples").replaceChildren(...list.map((s) => el("option", "", `${s.id}: ${s.text.length > 70 ? s.text.slice(0, 70) + "..." : s.text}`)));
+  })
+  .catch((error) => {
+    $("samples").replaceChildren(el("option", "", "Samples unavailable"));
+    $("load").disabled = $("simulate").disabled = true;
+    $("status").textContent = error.message;
+  });
 </script>
 </body>
 </html>

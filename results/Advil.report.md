@@ -1,0 +1,37 @@
+# Approval Gate — final run: Advil
+
+Persona: `customer_support` · Run: 2026-10-10T21:49:40+00:00 · Harness 1.0 · Python 3.12.7
+
+**Measured score: 50.0 / 50** (held-out 35.0 / 35 + failure drills 15.0 / 15). The other 50 points come from the judges' rubric.
+
+| Component | Result | Points |
+|---|---|---:|
+| Core: bad inputs caught | 6/6 | 10.0 / 10 |
+| Core: good inputs not falsely blocked | 6/6 | 10.0 / 10 |
+| Core: exact decisions | 12/12 | 5.0 / 5 |
+| Stretch: decided correctly | 6/6 | 10.0 / 10 |
+| Failure drills passed | 6/6 | 15.0 / 15 |
+
+## Failure drills
+
+| mode | result | good probe | bad probe |
+|---|---|---|---|
+| down | pass | HOLD_FOR_REVIEW | HOLD_FOR_REVIEW |
+| rate_limited | pass | APPROVE | BLOCK |
+| server_error | pass | APPROVE | BLOCK |
+| malformed | pass | HOLD_FOR_REVIEW | HOLD_FOR_REVIEW |
+| unavailable | pass | HOLD_FOR_REVIEW | BLOCK |
+| slow | pass | APPROVE | BLOCK |
+
+## Surprise inputs
+
+| id | expected | got | |
+|---|---|---|---|
+| sp-cs-2 | APPROVE | APPROVE | ok |
+| sp-cs-4 | HOLD_FOR_REVIEW | APPROVE | differs |
+
+## Provenance
+
+- Tool digest `939643512c57edb1` (harness, mock, fixtures, persona data), wrapper digest `90e987ffae846a45`
+- Raw wrapper audit and action logs from this run: `runs/Advil-144841/`
+- Integrity: `08195265ca2bdddd…` — submit `results/Advil.json` unchanged.

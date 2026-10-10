@@ -8,3 +8,7 @@ __pycache__/
 *.jsonl
 runs/
 results/*.practice.*
+CLAUDE.md
+PLAN.md
+!docs/audit_log_sample.jsonl
+!docs/actions_log_sample.log
