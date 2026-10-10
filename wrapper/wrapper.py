@@ -141,6 +141,16 @@ EXCEPTION = re.compile(r"\b(?:exception|waive\w*|bend the rules|just this once|s
 GUARANTEE = re.compile(r"\bguarantee\w*\b", re.I)
 ANY_TIME = re.compile(r"\b(?:any ?time|whenever|no matter when|forever|lifetime|always)\b", re.I)
 RESPONSE_WORDS = re.compile(r"\b(?:respon(?:se|d)\w*|repl(?:y|ies))\b", re.I)
+# A deliverable said to be ready/live/done by a specific date is a delivery-date promise (rule 3),
+# e.g. "have the new dashboard ready by Friday". Communication promises ("send an update by end of
+# day") are not caught, because they lack a deliverable-state word.
+_DATE_WORD = (r"(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next week"
+              r"|next month|next quarter|q[1-4]|end of (?:the )?(?:week|month|quarter))")
+DELIVERY_DATE = re.compile(
+    r"\b(?:ready|available|live|done|finished|complete|completed|delivered|launched|shipped|rolled out|up and running)\b"
+    r"[^.?!]{0,30}\b(?:by|before|on)\s+" + _DATE_WORD + r"\b",
+    re.I,
+)
 
 
 def words_to_digits(text):
@@ -440,6 +450,8 @@ def check_commitments(sentence, facts):
         findings.append(finding(UNVERIFIED, sentence, "Promises a product feature or release; agents cannot promise features.", "policies.json", HOLD))
     if promise and DELIVERY.search(sentence):
         findings.append(finding(UNVERIFIED, sentence, "Promises a delivery date; a manager must approve it.", "business_rules.md", HOLD))
+    if DELIVERY_DATE.search(sentence) and not negated(sentence):
+        findings.append(finding(UNVERIFIED, sentence, "Promises a deliverable will be ready by a specific date; a manager must approve a delivery commitment.", "business_rules.md", HOLD))
     if EXCEPTION.search(sentence) and not negated(sentence):
         findings.append(finding(UNVERIFIED, sentence, "Offers a policy exception; a manager must approve it.", "business_rules.md", HOLD))
     if GUARANTEE.search(sentence) and not negated(sentence):
@@ -542,9 +554,19 @@ def decide(text, context=None, persona="customer_support", scenario=None, audit_
         response = analyze(text, scenario=scenario)
         signals = parse_signals(response)
     except EzioError as e:
-        result = Decision(POLICY["on_ezio_failure"], f"Ezio unavailable: {e}",
-                          [{"source": "Ezio", "status": "error", "message": f"Ezio call failed ({e}); failing closed."}],
-                          {"error": str(e), "response": e.response})
+        # Ezio is down, but our own company-data checks still run. A draft that already
+        # contradicts the price sheet or policy is blocked; otherwise we fail closed to a hold.
+        findings = check_source_of_truth(text, context, load_source_of_truth(persona))
+        decision = POLICY["on_ezio_failure"]
+        for f in findings:
+            if f.level != APPROVE and RANK[f.level] > RANK[decision]:
+                decision = f.level
+        actionable = [f.message for f in findings if f.level != APPROVE]
+        reason = "; ".join(actionable) if decision != POLICY["on_ezio_failure"] else f"Ezio unavailable: {e}"
+        evidence = [asdict(f) for f in findings]
+        evidence.append({"source": "Ezio", "status": "error",
+                         "message": f"Ezio call failed ({e}); company-data checks still ran, failing closed."})
+        result = Decision(decision, reason, evidence, {"error": str(e), "response": e.response})
     else:
         findings = check_source_of_truth(text, context, load_source_of_truth(persona)) + check_ezio_claims(signals)
         reasons, decision = apply_policy(signals, findings, POLICY)

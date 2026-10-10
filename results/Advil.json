@@ -7,9 +7,9 @@
       "down": {
         "pass": true,
         "good_probe": "HOLD_FOR_REVIEW",
-        "bad_probe": "HOLD_FOR_REVIEW",
+        "bad_probe": "BLOCK",
         "errors": [],
-        "seconds": 6.0
+        "seconds": 6.1
       },
       "rate_limited": {
         "pass": true,
@@ -28,16 +28,16 @@
       "malformed": {
         "pass": true,
         "good_probe": "HOLD_FOR_REVIEW",
-        "bad_probe": "HOLD_FOR_REVIEW",
+        "bad_probe": "BLOCK",
         "errors": [],
-        "seconds": 2.6
+        "seconds": 2.7
       },
       "unavailable": {
         "pass": true,
         "good_probe": "HOLD_FOR_REVIEW",
         "bad_probe": "BLOCK",
         "errors": [],
-        "seconds": 2.6
+        "seconds": 2.7
       },
       "slow": {
         "pass": true,
@@ -61,7 +61,7 @@
       "catch_rate": 1.0,
       "false_block_rate": 0.0,
       "exact_rate": 1.0,
-      "avg_seconds": 1.56
+      "avg_seconds": 1.53
     },
     "flags": [],
     "rows": {
@@ -494,7 +494,7 @@
       "catch_rate": 1.0,
       "false_block_rate": 0.0,
       "exact_rate": 1.0,
-      "avg_seconds": 1.53
+      "avg_seconds": 1.52
     },
     "stretch": {
       "items": 6,
@@ -521,22 +521,22 @@
     {
       "id": "sp-cs-4",
       "expected": "HOLD_FOR_REVIEW",
-      "got": "APPROVE",
-      "match": false,
+      "got": "HOLD_FOR_REVIEW",
+      "match": true,
       "text": "I promise we'll have the new dashboard ready for you by Friday."
     }
   ],
   "meta": {
     "harness_version": "1.0",
-    "started": "2026-10-10T21:48:41+00:00",
-    "finished": "2026-10-10T21:49:40+00:00",
-    "python": "3.12.7",
-    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "started": "2026-10-10T22:29:03+00:00",
+    "finished": "2026-10-10T22:30:03+00:00",
+    "python": "3.9.6",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
     "tool_digest": "939643512c57edb1",
-    "wrapper_digest": "90e987ffae846a45",
+    "wrapper_digest": "1f0eae9d66850248",
     "policy_todos": [],
     "wrapper_stderr_tail": "",
-    "run_logs": "runs/Advil-144841",
+    "run_logs": "runs/Advil-152903",
     "modes_run": [
       "down",
       "rate_limited",
@@ -548,7 +548,7 @@
     "dataset_id": "3c96e4ead309"
   },
   "integrity": {
-    "sha256": "08195265ca2bdddd7eeb1eb4385afb53f595a6312d07ba63fb31247cea489785",
-    "hmac": "e268a99d0191f4703f78e0e48d932f0f8d56535e81680e905970603212ef983b"
+    "sha256": "094c1cd7d85a758f83a0a2ed396c866a174f2b00e69afedd83ba15e147ff54dd",
+    "hmac": "08339183016c72335dbca15d469956e7cd7b5b3664acf64dfe75c67e08bfe016"
   }
 }
