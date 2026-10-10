@@ -5,6 +5,7 @@ from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import audit
 import mock_actions
 from wrapper import APPROVE, decide
 
@@ -49,6 +50,8 @@ class Handler(BaseHTTPRequestHandler):
         route, _, query = self.path.partition("?")
         if route == "/health":
             return self.send_json(200, {"status": "ok"})
+        if route == "/api/audit":
+            return self.send_json(200, {"entries": audit.recent(25)})
         if route == "/api/samples":
             persona = dict(p.split("=", 1) for p in query.split("&") if "=" in p).get("persona")
             if persona not in PERSONAS:
@@ -66,9 +69,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(404, {"error": "Unknown endpoint"})
 
     def do_POST(self):
+        if self.path == "/review":
+            self.connection.settimeout(55)
+            return self._review()
         if self.path != "/decide":
             return self.send_json(404, {"error": "Unknown endpoint"})
-        self.connection.settimeout(10)
+        self.connection.settimeout(55)
         try:
             length = int(self.headers.get("Content-Length") or 0)
             if not 0 < length <= 1_000_000:
@@ -93,6 +99,22 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {**asdict(result), "action_executed": execute})
         except Exception:
             self.send_json(500, {"error": "Wrapper failed; inspect the decision implementation"})
+
+    def _review(self):
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            payload = json.loads(self.rfile.read(length) or b"{}")
+            note = str(payload.get("note") or "").strip()
+            text = payload.get("text")
+            persona = payload.get("persona")
+            context = payload.get("context") or {}
+            prior = str(payload.get("prior_decision") or "")
+            if not note or not isinstance(text, str) or persona not in PERSONAS or not isinstance(context, dict):
+                raise ValueError("need note, text, persona")
+        except (ValueError, UnicodeDecodeError, OSError, json.JSONDecodeError):
+            return self.send_json(400, {"error": "Review note needs text, persona, and a note. The action is not sent."})
+        audit.record_review(persona, text, context, note, prior)
+        self.send_json(200, {"logged": True, "action_executed": False})
 
 
 def main():

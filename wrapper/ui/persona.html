@@ -1,79 +1,307 @@
 <!doctype html>
-<!--
-  YOUR PERSONA PAGE. This is a skeleton; the UI is yours to design (25 points, optional).
-  Any approach is fine: edit this file, replace it with a built React/Vue/Svelte app in this folder,
-  or write plain JS. wrapper/serve.py serves everything in wrapper/ui/, with persona.html at "/".
-  Offline only: no CDNs or external services at demo time.
-
-  WHAT THE PAGE MUST DO (what judges score)
-    1. SEND AN INPUT, GET A RESPONSE: a draft goes to POST /decide (your wrapper), and the page shows the
-       decision, the reason, the evidence, and whether the mock action ran.
-    2. SIMULATE THE ACTION FROM A TEST INPUT: let the user pick a sample input (GET /api/samples?persona=...),
-       send it, and show the gate working: APPROVE -> the action ran; HOLD/BLOCK -> the action did NOT run.
-    3. Make it usable by someone in your persona's job: clear risk, errors shown plainly, a review step.
-
-  RULES
-    - Decisions come only from POST /decide. Do not decide, call the mock, or run the action in the browser.
-    - Latest test-run results are NOT your job: run `python3 gate.py results` for the color-coded viewer.
--->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TODO: your page title</title>
+<title>Lumen Cloud — email gate</title>
 <style>
-  /* TODO: design it. Think about who uses this: the person who is about to send / submit / publish. */
-  body { font: 16px/1.5 system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
-  textarea { width: 100%; min-height: 8rem; }
+  :root {
+    --ink: #1c1915;
+    --muted: #5c564c;
+    --line: #e4dccf;
+    --paper: #f6f1e8;
+    --card: #fffdf8;
+    --navy: #1e3a5f;
+    --approve: #1f6b45;
+    --hold: #8a5a12;
+    --block: #8d2a2a;
+    --approve-bg: #e7f5ec;
+    --hold-bg: #fff4df;
+    --block-bg: #fdecec;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--paper);
+    font: 16px/1.45 "Iowan Old Style", Palatino, Georgia, serif;
+  }
+  header {
+    background: var(--navy);
+    color: #f6f1e8;
+    padding: 1.1rem 1.5rem 1.25rem;
+  }
+  header p { margin: 0.35rem 0 0; max-width: 46rem; color: #d5deea; font-family: system-ui, sans-serif; font-size: 0.95rem; }
+  h1 { margin: 0; font-size: 1.55rem; letter-spacing: -0.02em; }
+  main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr); gap: 1rem; padding: 1rem; max-width: 72rem; margin: 0 auto; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1rem; }
+  h2 { margin: 0 0 0.6rem; font-size: 1.05rem; }
+  label { display: block; font-family: system-ui, sans-serif; font-size: 0.82rem; color: var(--muted); margin: 0.55rem 0 0.2rem; }
+  textarea, input, select, button { font: 0.95rem/1.4 system-ui, sans-serif; }
+  textarea { width: 100%; min-height: 9rem; padding: 0.7rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+  .row { display: flex; gap: 0.6rem; }
+  .row > div { flex: 1; }
+  input, select { width: 100%; padding: 0.45rem 0.5rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.8rem; }
+  button { border: 0; border-radius: 8px; padding: 0.55rem 0.85rem; background: var(--navy); color: white; cursor: pointer; }
+  button.secondary { background: #efe7da; color: var(--ink); }
+  button:disabled { opacity: 0.55; cursor: wait; }
+  .hint { font-family: system-ui, sans-serif; color: var(--muted); font-size: 0.85rem; margin: 0.4rem 0 0; }
+  .stamp { display: flex; justify-content: space-between; gap: 0.8rem; align-items: center; border-radius: 10px; padding: 0.8rem 0.9rem; border: 2px solid currentColor; }
+  .stamp strong { font-size: 1.25rem; letter-spacing: 0.04em; }
+  .stamp span { font-family: system-ui, sans-serif; font-size: 0.85rem; }
+  .APPROVE { color: var(--approve); background: var(--approve-bg); }
+  .HOLD_FOR_REVIEW { color: var(--hold); background: var(--hold-bg); }
+  .BLOCK { color: var(--block); background: var(--block-bg); }
+  .ERROR { color: var(--block); background: var(--block-bg); }
+  ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
+  .meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; margin-top: 0.7rem; }
+  .meta div { background: #f7f3eb; border-radius: 8px; padding: 0.4rem 0.5rem; font-family: system-ui, sans-serif; font-size: 0.78rem; }
+  .meta b { display: block; font-size: 0.95rem; }
+  .consequence { font-family: system-ui, sans-serif; margin-top: 0.7rem; padding: 0.55rem 0.7rem; background: #f7f3eb; border-radius: 8px; }
+  #review { margin-top: 0.8rem; padding-top: 0.6rem; border-top: 1px dashed var(--line); }
+  #status { min-height: 1.2rem; font-family: system-ui, sans-serif; font-size: 0.85rem; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-family: system-ui, sans-serif; font-size: 0.8rem; }
+  th, td { text-align: left; padding: 0.35rem 0.3rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .empty { color: var(--muted); font-family: system-ui, sans-serif; }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+    .meta { grid-template-columns: 1fr 1fr; }
+  }
 </style>
 </head>
 <body>
-<h1>TODO: name this screen for your persona's job</h1>
-
-<!-- TODO (1): inputs. Text is required; context is a JSON object your persona rules may use. -->
-<label for="text">Draft</label>
-<textarea id="text"></textarea>
-<button id="check">Check</button>
-
-<!-- TODO (2): sample picker. Fill this from /api/samples (see loadSamples below). -->
-<select id="samples"></select>
-<button id="simulate">Simulate with this sample</button>
-
-<!-- TODO (3): present the result for a human, not as raw JSON. Replace this <pre>. -->
-<pre id="out"></pre>
-
+<header>
+  <h1>Send gate — customer support</h1>
+  <p>Lumen Cloud. You are about to email a customer. The gate checks the price sheet and company policy, then Ezio’s public-fact check. Nothing sends unless the decision is APPROVE.</p>
+</header>
+<main>
+  <section>
+    <h2>Draft the email</h2>
+    <label for="text">What the customer would receive</label>
+    <textarea id="text" placeholder="Example: The Pro plan is $49 per month."></textarea>
+    <div class="row">
+      <div>
+        <label for="plan">Customer plan</label>
+        <select id="plan">
+          <option>Pro</option>
+          <option>Starter</option>
+          <option>Business</option>
+          <option>Enterprise</option>
+        </select>
+      </div>
+      <div>
+        <label for="tenure">Tenure (months)</label>
+        <input id="tenure" type="number" min="0" value="18">
+      </div>
+    </div>
+    <p class="hint">Loyalty discount needs Pro or Business and at least 12 months. A missing accuracy score is not a reason to block a plain update.</p>
+    <div class="actions">
+      <button id="check">Check before sending</button>
+      <button id="clear" class="secondary" type="button">Clear</button>
+    </div>
+    <h2 style="margin-top:1.1rem">Or replay a practice draft</h2>
+    <label for="samples">Sample (answers are not included)</label>
+    <select id="samples"><option value="">Loading samples…</option></select>
+    <div class="actions">
+      <button id="simulate" class="secondary" type="button">Run this sample through the gate</button>
+    </div>
+    <p id="status"></p>
+  </section>
+  <section>
+    <h2>Gate result</h2>
+    <div id="result"><p class="empty">No decision yet. Check a draft or run a sample.</p></div>
+    <div id="review" hidden>
+      <h2>Manager review</h2>
+      <p class="hint">HOLD means the email stays in the queue. A note is logged and does not send the email.</p>
+      <label for="note">Why you are sending it back or leaving it held</label>
+      <textarea id="note" style="min-height:4.5rem" placeholder="Example: promised a feature we have not scheduled."></textarea>
+      <div class="actions">
+        <button id="log-review" class="secondary" type="button">Log review note (do not send)</button>
+      </div>
+      <p id="review-status" class="hint"></p>
+    </div>
+    <h2 style="margin-top:1rem">Recent audit</h2>
+    <div id="audit"><p class="empty">Audit entries appear after a check.</p></div>
+  </section>
+</main>
 <script>
-// Set this to the persona you chose: customer_support | paralegal | financial_analyst
 const PERSONA = "customer_support";
+let samples = [];
+let last = { text: "", context: {}, decision: "" };
 
-// Plumbing: the one call every version of this page makes. Returns {decision, reason, evidence, action_executed, ...}.
-async function decide(text, context = {}) {
-  const response = await fetch("/decide", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, persona: PERSONA, context }) });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.error || "Request failed");
+function contextFromForm() {
+  return { plan: document.getElementById("plan").value, customer_tenure_months: Number(document.getElementById("tenure").value) };
+}
+
+function setBusy(busy, message) {
+  for (const id of ["check", "simulate", "log-review"]) {
+    document.getElementById(id).disabled = busy;
+  }
+  document.getElementById("status").textContent = message || "";
+}
+
+async function decide(text, context) {
+  const response = await fetch("/decide", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, persona: PERSONA, context })
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || "The gate rejected the request.");
   return body;
 }
 
-// Plumbing: sample inputs from the practice set: [{id, text, context}, ...]
-async function loadSamples() {
-  const response = await fetch("/api/samples?persona=" + PERSONA);
-  return (await response.json()).samples;
+function stampClass(decision) {
+  if (decision === "APPROVE" || decision === "HOLD_FOR_REVIEW" || decision === "BLOCK") return decision;
+  return "ERROR";
 }
 
-// TODO: show the result. Decision, reason, and evidence are what a person needs to decide; also show
-// whether the action ran (result.action_executed). Handle loading and errors (including a slow or down Ezio).
+function consequence(result) {
+  if (result.action_executed) return "The mock send ran. In production this email would leave the building.";
+  if (result.decision === "BLOCK") return "Send did not run. A blocked email contradicts the price sheet, policy, or a public fact.";
+  if (result.decision === "HOLD_FOR_REVIEW") return "Send did not run. A manager has to clear the promise, the tone, or a missing check.";
+  return "Send did not run.";
+}
+
 function showResult(result) {
-  document.getElementById("out").textContent = JSON.stringify(result, null, 2);
+  const ezio = result.ezio || {};
+  const verdict = (ezio.verdict || {});
+  const dims = ezio.dimensions || {};
+  const evidence = Array.isArray(result.evidence) && result.evidence.length ? result.evidence : ["No company-data objection."];
+  const scores = ["tone", "bias", "agreement"].map((name) => {
+    const score = dims[name] && dims[name].score;
+    return `<div><span>${name}</span><b>${score == null ? "—" : score}</b></div>`;
+  }).join("");
+  const accuracy = dims.accuracy || {};
+  document.getElementById("result").innerHTML = `
+    <div class="stamp ${stampClass(result.decision)}" role="status">
+      <strong>${result.decision || "ERROR"}</strong>
+      <span>${result.action_executed ? "Email action ran" : "Email action did not run"}</span>
+    </div>
+    <p>${escapeHtml(result.reason || "")}</p>
+    <ul>${evidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+    <div class="consequence">${consequence(result)}</div>
+    <div class="meta">
+      <div><span>Ezio tier</span><b>${escapeHtml(verdict.tier || (ezio.error ? "down" : "—"))}</b></div>
+      <div><span>Overall</span><b>${verdict.score == null ? "—" : verdict.score}</b></div>
+      <div><span>Accuracy</span><b>${escapeHtml(accuracy.status || "—")}</b></div>
+      ${scores}
+    </div>`;
+  document.getElementById("review").hidden = result.decision !== "HOLD_FOR_REVIEW";
+  document.getElementById("review-status").textContent = "";
 }
 
-// TODO: wire the buttons. Disable them while a request is running; catch errors and show them.
-document.getElementById("check").onclick = async () => {
-  showResult(await decide(document.getElementById("text").value));
+function showError(error) {
+  document.getElementById("result").innerHTML = `
+    <div class="stamp ERROR" role="status"><strong>ERROR</strong><span>No action ran</span></div>
+    <p>${escapeHtml(error.message || String(error))}</p>
+    <div class="consequence">The gate did not send. If Ezio is slow or down, wait and check again; a failure holds rather than sending blind.</div>`;
+  document.getElementById("review").hidden = true;
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+async function loadAudit() {
+  try {
+    const response = await fetch("/api/audit");
+    const body = await response.json();
+    const entries = (body.entries || []).slice().reverse();
+    if (!entries.length) {
+      document.getElementById("audit").innerHTML = `<p class="empty">No audit rows yet.</p>`;
+      return;
+    }
+    document.getElementById("audit").innerHTML = `<table><thead><tr><th>When</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+      ${entries.slice(0, 8).map((entry) => `<tr><td>${escapeHtml((entry.timestamp || "").replace("T", " ").replace("+00:00", "Z"))}</td><td>${escapeHtml(entry.decision || "")}</td><td>${escapeHtml(entry.reason || "")}</td></tr>`).join("")}
+    </tbody></table>`;
+  } catch (error) {
+    document.getElementById("audit").innerHTML = `<p class="empty">Could not read the audit log.</p>`;
+  }
+}
+
+async function runCheck(text, context) {
+  const trimmed = (text || "").trim();
+  if (!trimmed) {
+    showError(new Error("Write the email first. An empty draft is not sent."));
+    return;
+  }
+  if (trimmed.length > 20000) {
+    showError(new Error("That draft is over 20,000 characters. Shorten it before the gate will accept it."));
+    return;
+  }
+  setBusy(true, "Checking the price sheet, policy, and Ezio… this can take a few seconds.");
+  last = { text: trimmed, context, decision: "" };
+  try {
+    const result = await decide(trimmed, context);
+    last.decision = result.decision;
+    showResult(result);
+    document.getElementById("status").textContent = result.action_executed ? "Approved and the mock send ran." : "Stopped before send.";
+  } catch (error) {
+    showError(error);
+    document.getElementById("status").textContent = "The check failed.";
+  } finally {
+    for (const id of ["check", "simulate", "log-review"]) document.getElementById(id).disabled = false;
+    loadAudit();
+  }
+}
+
+document.getElementById("check").onclick = () => runCheck(document.getElementById("text").value, contextFromForm());
+document.getElementById("clear").onclick = () => {
+  document.getElementById("text").value = "";
+  document.getElementById("result").innerHTML = `<p class="empty">No decision yet.</p>`;
+  document.getElementById("review").hidden = true;
+  document.getElementById("status").textContent = "";
+};
+document.getElementById("simulate").onclick = () => {
+  const sample = samples.find((item) => item.id === document.getElementById("samples").value);
+  if (!sample) {
+    showError(new Error("Pick a sample first."));
+    return;
+  }
+  document.getElementById("text").value = sample.text;
+  if (sample.context && sample.context.plan) document.getElementById("plan").value = sample.context.plan;
+  if (sample.context && sample.context.customer_tenure_months != null) {
+    document.getElementById("tenure").value = sample.context.customer_tenure_months;
+  }
+  runCheck(sample.text, sample.context || {});
+};
+document.getElementById("log-review").onclick = async () => {
+  const note = document.getElementById("note").value.trim();
+  if (!note) {
+    document.getElementById("review-status").textContent = "Write a note so the audit shows why it stayed held.";
+    return;
+  }
+  document.getElementById("log-review").disabled = true;
+  try {
+    const response = await fetch("/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ persona: PERSONA, text: last.text, context: last.context, note, prior_decision: last.decision })
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || "Could not log the note");
+    document.getElementById("review-status").textContent = "Note logged. The email was not sent.";
+    loadAudit();
+  } catch (error) {
+    document.getElementById("review-status").textContent = error.message;
+  } finally {
+    document.getElementById("log-review").disabled = false;
+  }
 };
 
-// TODO: populate #samples from loadSamples(), then make "Simulate" send the chosen sample's text and context
-// through decide() and show clearly whether the action ran.
+async function loadSamples() {
+  const response = await fetch("/api/samples?persona=" + PERSONA);
+  const body = await response.json();
+  samples = body.samples || [];
+  const select = document.getElementById("samples");
+  select.innerHTML = samples.map((sample) => `<option value="${escapeHtml(sample.id)}">${escapeHtml(sample.id)} — ${escapeHtml(sample.text.slice(0, 72))}</option>`).join("");
+}
+loadSamples().catch(() => {
+  document.getElementById("samples").innerHTML = `<option value="">Samples unavailable</option>`;
+});
+loadAudit();
 </script>
 </body>
 </html>
